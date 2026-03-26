@@ -3,7 +3,11 @@ name: Run bot every 10 minutes
 on:
   schedule:
     - cron: '*/10 * * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   run:
@@ -18,29 +22,21 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install deps
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Sanity check secret
+        run: |
+          if [ -z "${{ secrets.BOT_TOKEN }}" ]; then
+            echo "SECRET_MISSING" && exit 1
+          fi
+          echo "SECRET_OK"
 
       - name: Run bot
         env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          STATE_ISSUE: "1"
-        run: python bot.py
-
-      - name: Commit state back if changed
-        env:
-          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git status --porcelain | grep -q state.json; then
-            git add state.json
-            git commit -m "Update state from actions run"
-            git remote set-url origin https://x-access-token:${PUSH_TOKEN}@github.com/${{ github.repository }}.git
-            git push origin HEAD:main
-          else
-            echo "No state change"
-          fi
+          # Запустите ваш entrypoint; пример для Python:
+          python bot.py
