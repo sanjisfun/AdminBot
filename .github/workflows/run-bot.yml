@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   run:
@@ -22,21 +21,20 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install dependencies (if any)
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Sanity check secret
+      - name: Check secret present
         run: |
           if [ -z "${{ secrets.BOT_TOKEN }}" ]; then
-            echo "SECRET_MISSING" && exit 1
+            echo "BOT_TOKEN not set" && exit 1
           fi
-          echo "SECRET_OK"
+          echo "BOT_TOKEN ok"
 
       - name: Run bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
-          # Запустите ваш entrypoint; пример для Python:
           python bot.py
